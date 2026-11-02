@@ -3032,7 +3032,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <span style="float:right">화면 판 11.02 19:37</span></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.02 19:41 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3057,6 +3057,15 @@ async function 목록화면() {
   $("#연동띠").onclick = () => { $("#연동설정").open = true; $("#연동설정").scrollIntoView({behavior: "smooth"}); };
   $("#새로").onclick = () => 새점검화면();
   $("#현장불러오기").onclick = 현장불러오기화면;
+  $("#새판받기").onclick = async e => {      // 저장해 둔 화면 파일만 지우고 다시 받는다 (조사 내용·사진·열쇠는 그대로)
+    e.preventDefault();
+    if (!navigator.onLine) return alert("인터넷이 될 때 눌러 주세요");
+    try {
+      for (const r of await navigator.serviceWorker?.getRegistrations?.() || []) await r.unregister();
+      for (const k of await caches.keys()) await caches.delete(k);
+    } catch {}
+    location.replace(location.pathname + "?v=" + Date.now());
+  };
   화면.querySelectorAll("details.현장묶음").forEach(d => d.ontoggle = () => {
     const 펼친 = 읽어("펼친현장", []).filter(x => x !== d.dataset.현장);
     if (d.open) 펼친.push(d.dataset.현장);
