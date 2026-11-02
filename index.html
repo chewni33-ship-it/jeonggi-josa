@@ -3011,7 +3011,7 @@ async function 목록화면() {
   const 점검들 = (await 저장소.목록()).sort((a, b) => (b.고친때 || "").localeCompare(a.고친때 || ""));
   화면.innerHTML = `
     <button class="주" id="새로" style="width:100%;margin:6px 0 4px">+ 새 점검 시작</button>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다.</p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <span style="float:right">화면 판 11.02 19:07</span></p>
     ${점검들.length ? "" : '<div class="카드 힌트">아직 점검이 없어요.</div>'}
     ${점검들.map(p => {
       const 항목 = 점검항목(p), 끝 = 항목.filter(x => p.결과[x.번호]?.판정).length;
@@ -3158,10 +3158,7 @@ function 새점검화면() {
       공종파일: 새.공종파일, 세부종류: 새.세부종류, 차수: +$("#차수").value, 조사일: $("#조사일").value,
       조사자: $("#조사자").value.trim(), 결과: {}, 이전지적: $("#차수").value === "1" ? [] : 새.이전지적, 고친때: new Date().toISOString(),
       제원: 새.제원, 제원판: 새.제원판 || "", 현장id: 새.현장id || "", 시기: 새.시기 || "", 조건: 새.조건};
-    for (const x of 점검항목(점)) {      // 세부종류·현장 조건에 안 맞는 항목은 처음부터 해당없음 (점검자가 바꿀 수 있다)
-      const 왜 = 해당없음이유(점, x);
-      if (왜) 점.결과[x.번호] = {판정: "해당없음", 자동: 왜};
-    }
+    자동해당없음(점);
     await 저장소.쓰기(점);
     for (const [이름, 데이터] of Object.entries(새.지난사진))   // 지난 차수 지적 사진 (보기만)
       await 저장소.사진쓰기(점.id + "/" + 이름, new Blob([데이터], {type: "image/jpeg"}));
@@ -3189,6 +3186,15 @@ function 모든항목(점) {
     .map(x => ({...x, 묶음: 서류(x) ? "서류·일반 안전" : `${목.공종} 현장 점검`}))
     .sort((a, b) => 서류(b) - 서류(a));
 }
+// 세부종류·현장 조건에 안 맞는 항목은 해당없음 (판정 안 한 것만 — 점검자가 고른 판정은 건드리지 않는다)
+function 자동해당없음(점) {
+  let n = 0;
+  for (const x of 점검항목(점)) {
+    const 왜 = 해당없음이유(점, x);
+    if (왜 && !점.결과[x.번호]?.판정) { 점.결과[x.번호] = {...(점.결과[x.번호] || {}), 판정: "해당없음", 자동: 왜}; n++; }
+  }
+  return n;
+}
 function 점검항목(점) { return 모든항목(점).filter(x => x.기본 || 점.결과[x.번호]?.판정); }
 function 더보기항목(점) { return 모든항목(점).filter(x => !x.기본 && !점.결과[x.번호]?.판정 && !해당없음이유(점, x)); }
 
@@ -3211,6 +3217,7 @@ function 저장(곧 = false) {
 
 async function 점검화면(id) {
   지금 = await 저장소.읽기(id);
+  if (자동해당없음(지금)) 저장(true);
   $("#머리").textContent = 지금.공사명;
   $("#처음으로").hidden = false;
   const 항목들 = 점검항목(지금), 더보기 = 더보기항목(지금), 다 = 모든항목(지금), 자동 = 항목들.filter(x => 지금.결과[x.번호]?.자동);
@@ -3654,10 +3661,18 @@ function 연동예약(초 = 15) { clearTimeout(연동시계); 연동시계 = set
 addEventListener("online", () => 연동하기());
 setInterval(연동하기, 120000);
 
-$("#처음으로").onclick = () => { if (지금) 저장(true); 지금 = null; 목록화면(); };
+$("#처음으로").onclick = async () => { if (지금) await 저장(true); 지금 = null; if (새판) location.reload(); else 목록화면(); };
 if (navigator.storage?.persist) navigator.storage.persist();
 // 웹(https)에 올린 판: 화면을 기기에 저장해 두고 인터넷 없이도 연다 (sw.js)
-if ((location.protocol === "https:" || location.hostname === "localhost") && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+let 새판 = false;
+if ((location.protocol === "https:" || location.hostname === "localhost") && "serviceWorker" in navigator) {
+  const 있던 = !!navigator.serviceWorker.controller;      // 처음 설치 때는 다시 열 필요 없음
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!있던) return;
+    if (지금) { 새판 = true; 알림("새 판을 받았어요 — 첫 화면으로 가면 바뀌어요"); } else location.reload();
+  });
+  navigator.serviceWorker.register("sw.js").then(r => r.update()).catch(() => {});
+}
 목록화면();
 연동하기();
 </script>

@@ -1,4 +1,4 @@
-const 판 = "현장조사-308a3be490";
+const 판 = "현장조사-c3bc1f7e2f";
 const 파일들 = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(판).then(c => c.addAll(파일들))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== 판).map(k => caches.delete(k))))); self.clients.claim(); });
