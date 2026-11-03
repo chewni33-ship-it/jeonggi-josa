@@ -3035,7 +3035,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 11:17 · 새 판 받기</a></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:12 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3933,6 +3933,20 @@ function 연동글() {
 function 연동예약(초 = 15) { clearTimeout(연동시계); 연동시계 = setTimeout(연동하기, 초 * 1000); }
 addEventListener("online", () => 연동하기());
 setInterval(연동하기, 120000);
+
+// 아이패드 키보드: 엔터는 「완료」(키보드 닫기), 입력칸 밖을 누르면 닫기 — 칸마다 내용은 이미 저절로 저장된다
+const 글칸 = "input:not([type=checkbox]):not([type=file]):not([type=date]),textarea";
+new MutationObserver(() => document.querySelectorAll(`:is(${글칸}):not([enterkeyhint])`).forEach(el => el.setAttribute("enterkeyhint", "done")))
+  .observe(document.body, {childList: true, subtree: true});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !e.target.matches?.(글칸)) return;
+  if (e.target.matches("textarea") && !e.isComposing) e.preventDefault();      // 문제점·대책 칸도 줄바꿈 대신 완료
+  setTimeout(() => e.target.blur(), 30);                                       // 한글 조합 중이면 마지막 글자가 들어간 뒤 닫는다
+});
+document.addEventListener("touchstart", e => {
+  const 쓰는중 = document.activeElement;
+  if (쓰는중?.matches?.(글칸) && !e.target.closest("input,textarea,select,label,button")) 쓰는중.blur();
+}, {passive: true});
 
 $("#처음으로").onclick = async () => { if (지금) await 저장(true); 지금 = null; if (새판) location.reload(); else 목록화면(); };
 if (navigator.storage?.persist) navigator.storage.persist();
