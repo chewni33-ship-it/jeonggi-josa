@@ -3022,7 +3022,7 @@ async function 목록화면() {
   const 불러온 = 불러온현장(), 펼친 = 읽어("펼친현장", []);
   const 현장칸 = PC현장().filter(현 => 불러온.includes(현.id)).map(현 => `<details class="카드 현장묶음" data-현장="${글(현.id)}" ${펼친.includes(현.id) ? "open" : ""}>
       <summary><b>${글(현.공사개요?.공사명 || "이름 없는 현장")}</b>
-        <span class="힌트">${글(현.공사개요?.위치 || "")} · 점검 ${현.점검.length}개</span></summary>
+        <span class="힌트">${글(현.공사개요?.위치 || "")} · 점검 ${현.점검.length}개${현.PC ? " · " + 글(현.PC) : ""}</span></summary>
       ${현.점검.map(q => {
         const p = 점검들.find(x => x.현장id === 현.id && x.공종파일 === q.공종파일 && x.차수 === q.차수);
         if (p) 이은.add(p.id);
@@ -3035,7 +3035,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 11:02 · 새 판 받기</a></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 11:08 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3103,16 +3103,15 @@ async function 현장불러오기화면() {
   화면.innerHTML = `<div class="카드 힌트">PC 현장 목록을 받는 중…</div>`;
   let 목록;
   try {
-    const 글자 = await 연동.부르기("GET", "현장목록.json", null, true);
-    목록 = 글자 ? JSON.parse(글자) : [];
-    if (글자) localStorage.setItem("현장목록", 글자);
+    목록 = await 현장목록받기() || [];
+    localStorage.setItem("현장목록", JSON.stringify(목록));
   } catch (e) {
     화면.innerHTML = `<div class="카드">PC 현장 목록을 받지 못했어요 — ${글(e.message)}<br><span class="힌트">인터넷이 되는 곳에서 다시 해 주세요.</span></div>`; return;
   }
   const 불러온 = 불러온현장();
   화면.innerHTML = `<p class="힌트">불러오면 그 현장의 점검 정보(공종·차수·제원·지난 지적)를 이 아이패드에 한꺼번에 받아 둬요. 현장에 인터넷이 없어도 돼요.</p>
     ${목록.length ? 목록.map(현 => `<div class="카드 현장"><div class="글"><b>${글(현.공사개요?.공사명 || "이름 없는 현장")}</b>
-      <span class="힌트">${글(현.공사개요?.위치 || "")} · 점검 ${현.점검.length}개</span></div>
+      <span class="힌트">${글(현.공사개요?.위치 || "")} · 점검 ${현.점검.length}개${현.PC ? " · " + 글(현.PC) : ""}</span></div>
       <button class="${불러온.includes(현.id) ? "" : "주 "}작게" data-불러오기="${글(현.id)}">${불러온.includes(현.id) ? "다시 받기" : "불러오기"}</button></div>`).join("")
       : `<div class="카드 힌트">PC에 현장이 없어요. PC 프로그램에서 안전관리계획서로 현장을 먼저 만드세요.</div>`}`;
   화면.querySelectorAll("[data-불러오기]").forEach(b => b.onclick = async () => {
@@ -3709,9 +3708,17 @@ const 읽어 = (키, 없으면) => { try { return JSON.parse(localStorage.getIte
 const PC현장 = () => 읽어("현장목록", []);
 const 불러온현장 = () => 읽어("불러온현장", []);
 async function 준비읽기(키) { const t = await 저장소.사진읽기("준비/" + 키 + ".json"); return t ? JSON.parse(t) : null; }
+async function 현장목록받기() {      // PC마다 현장목록/<PC이름>.json — 모두 합친다 (옛 판: 현장목록.json 하나)
+  const 파일들 = ((await 연동.부르기("GET", "현장목록")) || []).filter(f => f.name.endsWith(".json"));
+  if (!파일들.length) { const t = await 연동.부르기("GET", "현장목록.json", null, true); return t ? JSON.parse(t) : null; }
+  const 다 = [];
+  for (const f of 파일들)
+    다.push(...JSON.parse(await 연동.부르기("GET", "현장목록/" + f.name, null, true)).map(h => ({PC: f.name.replace(/\.json$/, ""), ...h})));
+  return 다;
+}
 async function PC자료받기(받을) {      // 받을 = 준비/ 목록 [{name, sha}] — 바뀐 것만 받아 이 태블릿에 둔다
   let 바뀜 = false;
-  const 목록글 = await 연동.부르기("GET", "현장목록.json", null, true);
+  const 목록 = await 현장목록받기(), 목록글 = 목록 && JSON.stringify(목록);
   if (목록글 && 목록글 !== localStorage.getItem("현장목록")) { localStorage.setItem("현장목록", 목록글); 바뀜 = true; }
   const 받은 = 읽어("준비sha", {});
   const 불러온 = 불러온현장();
