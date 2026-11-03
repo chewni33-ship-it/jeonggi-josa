@@ -3140,7 +3140,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:58 · 새 판 받기</a></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 14:05 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3622,6 +3622,8 @@ function 전용남은일(점) {
     if (!쓴줄.some(줄 => 내칸.some(c => 줄[c.이름]))) { 일.push({글: `확인 표 「${t.제목}」 비어 있음`}); continue; }
     const 빈 = 판정칸 ? 쓴줄.filter(줄 => !줄[판정칸.이름]).length : 0;
     if (빈) 일.push({글: `확인 표 「${t.제목}」 판정 안 한 줄 ${빈}개`});
+    const 근거없음 = 판정칸 ? 쓴줄.filter(줄 => 줄[판정칸.이름] === "적합" && !내칸.some(c => c !== 판정칸 && 줄[c.이름])).length : 0;
+    if (근거없음) 일.push({글: `확인 표 「${t.제목}」 현장 값 없이 적합 ${근거없음}줄 — 본 값을 적어 주세요`});
   }
   return 일;
 }
