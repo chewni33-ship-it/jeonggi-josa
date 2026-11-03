@@ -3140,7 +3140,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:42 · 새 판 받기</a></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:58 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3318,6 +3318,16 @@ function 새점검화면(준비 = null) {
       $("#이전칸").hidden = 준.차수 === 1;
       $(`#공종 button[data-k="${준.공종파일}"]`).click();
       (준.세부종류 || []).forEach(s => $(`#세부목록 button[data-s="${CSS.escape(s)}"]`)?.click());
+      if (준.현장id) {       // PC 현장 점검 — 공종은 정해져 있다. 세부종류·현장 조건은 계획서로 미리 골라 두고, 현장이 다를 때만 바꾼다
+        $("#공종").querySelectorAll("button:not(.켬)").forEach(b => b.hidden = true);
+        $("#공종").insertAdjacentHTML("beforeend", `<span class="힌트">PC 현장 점검이라 공종은 정해져 있어요</span>`);
+        if (준.세부출처) $("#세부 .힌트").textContent = `${준.세부출처} 기준으로 골라 두었어요 — 현장이 다르면 바꾸세요`;
+        for (const [키, 값] of Object.entries(준.조건 || {})) {
+          const 단추 = $(`#조건목록 [data-조건="${CSS.escape(키)}"] button[data-v="${값 ? "예" : "아니오"}"]`);
+          if (단추 && !단추.classList.contains("켬")) { 단추.click(); 단추.closest(".조건줄").querySelector("span").insertAdjacentHTML("beforeend", ` <small class="힌트">(계획서 기준)</small>`); }
+          else if (!단추) 새.조건[키] = 값;           // 공통 조건(건설기계 사용 등)은 묻지 않고 넣어 둔다
+        }
+      }
       Object.assign(새, {이전지적: (준.이전지적 || []).map(j => ({...j, 조치: "", 메모: "", 사진: []})), 제원: 준.제원 || [], 전용PC: 준.전용PC || {},
         제원판: 준.제원판 || "", 현장id: 준.현장id, 시기: 준.시기, 예정: 준.예정, 지난사진: {}});
       for (const [이름, 데이터] of 사진들) if (이름.startsWith("사진/지난/")) 새.지난사진[이름.slice("사진/".length)] = 데이터;  // 「지난/파일.jpg」
