@@ -60,6 +60,8 @@ h3.대{font-size:14px;color:var(--ink-2);margin:14px 0 2px}
 .판정 button.켬[data-v="보완"]{background:var(--warn);border-color:var(--warn);color:#fff}
 .판정 button.켬[data-v="부적합"]{background:var(--no);border-color:var(--no);color:#fff}
 .판정 button.켬[data-v="해당없음"]{background:var(--idle);border-color:var(--idle);color:#fff}
+.숨김칸{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:15px}
+.숨김칸 input{width:auto;margin:0}
 .조건줄{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0}
 .조건줄 .판정{grid-template-columns:1fr 1fr;margin:0;min-width:150px}
 .조건줄 button.켬{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -3035,7 +3037,7 @@ async function 목록화면() {
   const 그밖 = 점검들.filter(p => !이은.has(p.id));
   화면.innerHTML = `
     <div class="카드 연동띠" id="연동띠"><b>PC 연동</b> <span data-연동글>${글(연동.상태 || "확인 중…")}</span></div>
-    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:14 · 새 판 받기</a></p>
+    <p class="힌트">조사 내용은 이 태블릿 안에 저절로 저장돼요. 인터넷이 없어도 됩니다. <a href="#" id="새판받기" style="float:right" class="힌트">화면 판 11.03 13:15 · 새 판 받기</a></p>
     <h2 class="묶음">내 현장</h2>
     ${현장칸 || `<div class="카드 힌트">아직 불러온 현장이 없어요. 아래 「현장 불러오기」로 PC 현장을 고르세요.</div>`}
     <button class="주" id="현장불러오기" style="width:100%;margin:6px 0 8px">+ 현장 불러오기</button>
@@ -3404,7 +3406,13 @@ function 항목달기(el, x) {
   const 그리기 = () => {
     const r = 지금.결과[x.번호] || {};
     const 더 = $("[data-더]", el);
-    if (!r.판정 || r.판정 === "해당없음") { 더.innerHTML = ""; return; }
+    if (!r.판정) { 더.innerHTML = ""; return; }
+    if (r.판정 === "해당없음") {       // 보고서 점검표에 「해당없음」으로 실을지, 아예 뺄지 (보고서한글.점검항목 이 「숨김」을 본다)
+      더.innerHTML = `<label class="숨김칸"><input type="checkbox" data-숨김 ${r.숨김 ? "checked" : ""}> 보고서에서 빼기
+        <span class="힌트">체크 안 하면 보고서 점검표에 「해당없음」으로 실려요</span></label>`;
+      $("[data-숨김]", 더).onchange = e => { if (e.target.checked) r.숨김 = true; else delete r.숨김; 저장(); };
+      return;
+    }
     더.innerHTML = `
       ${x.측정 === "Y" ? `<div class="측정">
         <label><span>측정값 (${글(x.단위)})</span><input inputmode="decimal" data-f="측정" value="${글(r.측정)}"></label>
@@ -3443,6 +3451,7 @@ function 항목달기(el, x) {
     r.판정 = r.판정 === b.dataset.v ? "" : b.dataset.v;
     if (!r.판정) delete r.판정;
     if (r.자동) { delete r.자동; $("[data-자동]", el)?.remove(); }
+    if (r.판정 !== "해당없음") delete r.숨김;
     el.dataset.판정 = r.판정 || "";
     el.querySelectorAll(".판정 button").forEach(y => y.classList.toggle("켬", y.dataset.v === r.판정));
     그리기(); 저장(); 진행();
